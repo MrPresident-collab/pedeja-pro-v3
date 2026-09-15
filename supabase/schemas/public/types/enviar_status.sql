@@ -1,0 +1,18 @@
+CREATE TYPE "public"."enviar_status" AS ENUM (
+  'DRAFT',
+  'REQUESTED',
+  'PAYMENT_PENDING',
+  'CONFIRMED',
+  'ASSIGNED',
+  'PICKUP_PENDING',
+  'PICKED_UP',
+  'IN_TRANSIT',
+  'ARRIVED_DESTINATION',
+  'DELIVERED',
+  'CANCELLED',
+  'FAILED',
+  'RETURN_REQUIRED',
+  'RETURNED'
+);
+
+GRANT USAGE ON TYPE "public"."enviar_status" TO "postgres";

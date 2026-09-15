@@ -1,0 +1,18 @@
+CREATE TYPE "public"."delivery_status" AS ENUM (
+  'CREATED',
+  'AVAILABLE',
+  'ASSIGNED',
+  'ACCEPTED',
+  'ARRIVED_PICKUP',
+  'PICKED_UP',
+  'IN_TRANSIT',
+  'ARRIVED_DESTINATION',
+  'DELIVERED',
+  'CANCELLED',
+  'FAILED',
+  'REASSIGNMENT_REQUIRED',
+  'RETURNING',
+  'RETURNED'
+);
+
+GRANT USAGE ON TYPE "public"."delivery_status" TO "postgres";
