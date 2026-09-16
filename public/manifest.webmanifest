@@ -1,0 +1,21 @@
+{
+  "name": "Pedejá — A promessa que se move",
+  "short_name": "Pedejá",
+  "description": "Pedejá — comida, compras, lojas e entregas em Angola.",
+  "lang": "pt-AO",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#8A2BE2",
+  "theme_color": "#8A2BE2",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
