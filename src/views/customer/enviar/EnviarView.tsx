@@ -173,15 +173,7 @@ export function EnviarView({ onBack, onComplete }: Props) {
   }
 
   async function submit() {
-    if (
-      submitting ||
-      !draft.pickup ||
-      !draft.destination ||
-      !draft.vehicleOption ||
-      !draft.estimate
-    ) {
-      return;
-    }
+    if (submitting || !draft.pickup || !draft.destination || !draft.vehicleOption || !draft.estimate) return;
     const validation = validateParcelDraft(draft.package, draft.recipient, draft.restrictionAcknowledged, draft.packagePhoto);
     if (firstParcelError(validation)) {
       setErrors(validation);
@@ -208,17 +200,17 @@ export function EnviarView({ onBack, onComplete }: Props) {
       }
     } else {
       result = createParcelOrder({
-      pickup: draft.pickup,
-      destination: draft.destination,
-      recipient: draft.recipient,
-      package: draft.package,
-      vehicleType: draft.vehicleOption.type,
-      vehicleConfigurationId: draft.vehicleOption.configurationId,
-      deliveryNotes: draft.package.notes,
-      paymentMethod: draft.paymentMethod,
-      restrictionAcknowledged: draft.restrictionAcknowledged,
-      packagePhoto: draft.packagePhoto,
-    });
+        pickup: draft.pickup,
+        destination: draft.destination,
+        recipient: draft.recipient,
+        package: draft.package,
+        vehicleType: draft.vehicleOption.type,
+        vehicleConfigurationId: draft.vehicleOption.configurationId,
+        deliveryNotes: draft.package.notes,
+        paymentMethod: draft.paymentMethod,
+        restrictionAcknowledged: draft.restrictionAcknowledged,
+        packagePhoto: draft.packagePhoto,
+      });
     }
     setSubmitting(false);
     if (result.ok) { showToast('Envio criado. Vamos encontrar um estafeta.'); onComplete(result.order.id); }
@@ -230,49 +222,19 @@ export function EnviarView({ onBack, onComplete }: Props) {
   return (
     <main className="page inner-page parcel-flow">
       <header className="category-header">
-        <button className="icon-button back-button" onClick={goBack} aria-label="Voltar">
-          <ArrowLeft size={20} />
-        </button>
+        <button className="icon-button back-button" onClick={goBack} aria-label="Voltar"><ArrowLeft size={20} /></button>
         <div>
-          {step === 'landing' ? (
-            <p className="eyebrow">ENVIAR </p>
-          ) : (
-            <p className="eyebrow">
-              ENVIAR · PASSO {stepIndex + 1}/{FLOW_STEPS.length}
-            </p>
-          )}
+          {step === 'landing' ? <p className="eyebrow">ENVIAR </p> : <p className="eyebrow">ENVIAR · PASSO {stepIndex + 1}/{FLOW_STEPS.length}</p>}
           <h1>{title}</h1>
         </div>
-        {step !== 'landing' && draft.destination && (
-          <div className="header-route-hint">
-            <Navigation size={14} />
-          </div>
-        )}
+        {step !== 'landing' && draft.destination && <div className="header-route-hint"><Navigation size={14} /></div>}
       </header>
 
-      {step !== 'landing' && (
-        <div className="step-progress">
-          {FLOW_STEPS.map((s, i) => (
-            <span key={s.id} className={i <= stepIndex ? 'done' : ''} />
-          ))}
-        </div>
-      )}
+      {step !== 'landing' && <div className="step-progress">{FLOW_STEPS.map((s, i) => <span key={s.id} className={i <= stepIndex ? 'done' : ''} />)}</div>}
 
       {step === 'landing' && <LandingStep onStart={goNext} />}
-
-      {step === 'recolha' && (
-        <PickupStep
-          pickup={draft.pickup}
-          onChange={(pickup) => setDraft((prev) => ({ ...prev, pickup }))}
-        />
-      )}
-
-      {step === 'destino' && (
-        <DestinationStep
-          destination={draft.destination}
-          onChange={(destination) => setDraft((prev) => ({ ...prev, destination }))}
-        />
-      )}
+      {step === 'recolha' && <PickupStep pickup={draft.pickup} onChange={(pickup) => setDraft((prev) => ({ ...prev, pickup }))} />}
+      {step === 'destino' && <DestinationStep destination={draft.destination} onChange={(destination) => setDraft((prev) => ({ ...prev, destination }))} />}
 
       {step === 'encomenda' && (
         <PackageStep
@@ -281,60 +243,18 @@ export function EnviarView({ onBack, onComplete }: Props) {
           pkg={draft.package}
           onChange={(pkg) => setDraft((prev) => ({ ...prev, package: pkg }))}
           restrictionAcknowledged={draft.restrictionAcknowledged}
-          onRestrictionChange={(restrictionAcknowledged) =>
-            setDraft((prev) => ({ ...prev, restrictionAcknowledged }))
-          }
+          onRestrictionChange={(restrictionAcknowledged) => setDraft((prev) => ({ ...prev, restrictionAcknowledged }))}
           errors={errors}
+          packagePhoto={draft.packagePhoto}
+          onPackagePhotoChange={(packagePhoto) => setDraft((prev) => ({ ...prev, packagePhoto }))}
         />
       )}
 
-      {step === 'transporte' && (
-        <TransportStep
-          plan={plan}
-          selected={selectedOption}
-          onSelect={(option) =>
-            setDraft((prev) => ({
-              ...prev,
-              vehicleOption: option ? { ...option } : null,
-            }))
-          }
-        />
-      )}
+      {step === 'transporte' && <TransportStep plan={plan} selected={selectedOption} onSelect={(option) => setDraft((prev) => ({ ...prev, vehicleOption: option ? { ...option } : null }))} />}
+      {step === 'estimativa' && <EstimateStep vehicleOption={draft.vehicleOption} estimate={draft.estimate ?? selectedOption?.estimate ?? null} paymentMethod={draft.paymentMethod} onPaymentChange={(paymentMethod) => setDraft((prev) => ({ ...prev, paymentMethod }))} />}
+      {step === 'confirmar' && <ConfirmStep pickup={draft.pickup} destination={draft.destination} recipient={draft.recipient} pkg={draft.package} vehicleOption={draft.vehicleOption} estimate={draft.estimate} paymentMethod={draft.paymentMethod} restrictionAcknowledged={draft.restrictionAcknowledged} onRestrictionChange={(restrictionAcknowledged) => setDraft((prev) => ({ ...prev, restrictionAcknowledged }))} submitting={submitting} onSubmit={submit} />}
 
-      {step === 'estimativa' && (
-        <EstimateStep
-          vehicleOption={draft.vehicleOption}
-          estimate={draft.estimate ?? selectedOption?.estimate ?? null}
-          paymentMethod={draft.paymentMethod}
-          onPaymentChange={(paymentMethod) => setDraft((prev) => ({ ...prev, paymentMethod }))}
-        />
-      )}
-
-      {step === 'confirmar' && (
-        <ConfirmStep
-          pickup={draft.pickup}
-          destination={draft.destination}
-          recipient={draft.recipient}
-          pkg={draft.package}
-          vehicleOption={draft.vehicleOption}
-          estimate={draft.estimate}
-          paymentMethod={draft.paymentMethod}
-          restrictionAcknowledged={draft.restrictionAcknowledged}
-          onRestrictionChange={(restrictionAcknowledged) =>
-            setDraft((prev) => ({ ...prev, restrictionAcknowledged }))
-          }
-          submitting={submitting}
-          onSubmit={submit}
-        />
-      )}
-
-      {step !== 'confirmar' && step !== 'landing' && (
-        <div className="step-actions">
-          <button className="btn-primary" onClick={goNext} disabled={step === 'transporte' && !draft.vehicleOption}>
-            Continuar <ArrowRight size={18} />
-          </button>
-        </div>
-      )}
+      {step !== 'confirmar' && step !== 'landing' && <div className="step-actions"><button className="btn-primary" onClick={goNext} disabled={step === 'transporte' && !draft.vehicleOption}>Continuar <ArrowRight size={18} /></button></div>}
     </main>
   );
 }
