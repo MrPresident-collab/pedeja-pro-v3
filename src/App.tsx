@@ -1,558 +1,226 @@
-import { useEffect, useState } from 'react';
-import { BottomNav, type Tab } from '@/components/BottomNav';
-import { BottomSheet } from '@/components/BottomSheet';
-import { AddressSheet } from '@/components/address/AddressSheet';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { PersonalDataSheet } from '@/components/account/PersonalDataSheet';
-import { PaymentsSheet } from '@/components/account/PaymentsSheet';
-import { NotificationsSheet } from '@/components/account/NotificationsSheet';
-import { AppearanceSheet } from '@/components/account/AppearanceSheet';
-import { PermissionsSheet } from '@/components/account/PermissionsSheet';
-import { DeleteAccountDialog } from '@/components/account/DeleteAccountDialog';
-import { ToastHost } from '@/components/Toast';
-import { showToast } from '@/components/toastStore';
-import { SignInSheet } from '@/components/SignInSheet';
-import { repositories } from '@/repositories';
-import { isDemoModeEnabled, isSupabaseConfigured } from '@/services/supabase';
-import { useAuth } from '@/auth/useAuth';
-import { SessionGate } from '@/auth/SessionGate';
-import { useResolvedDark } from '@/hooks/useAppearance';
-import { HomeView } from '@/views/customer/HomeView';
-import { MarketplaceView } from '@/views/customer/MarketplaceView';
-import { ExploreView } from '@/views/customer/ExploreView';
-import { BusinessRegisterView } from '@/views/customer/BusinessRegisterView';
-import { EstafetaRegisterView } from '@/views/customer/EstafetaRegisterView';
-import { LegalDocView } from '@/views/customer/LegalDocView';
-import { OrdersView } from '@/views/customer/OrdersView';
-import { ProfileView } from '@/views/customer/ProfileView';
-import { SplashView } from '@/views/customer/SplashView';
-import { WelcomeView } from '@/views/customer/WelcomeView';
-import { ContentView } from '@/views/customer/ContentView';
-import { BusinessView } from '@/views/customer/BusinessView';
-import { CartView } from '@/views/customer/CartView';
-import { CheckoutView } from '@/views/customer/CheckoutView';
-import { CategoryView } from '@/views/customer/categories/CategoryView';
-import { EnviarView } from '@/views/customer/enviar/EnviarView';
-import { ParcelCreatedView } from '@/views/customer/enviar/ParcelCreatedView';
-import { ParcelTrackingView } from '@/views/customer/enviar/ParcelTrackingView';
-import { ProductionBackoffice } from '@/views/backoffice/ProductionBackoffice';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Bell,
+  ChevronRight,
+  Clock3,
+  Compass,
+  Home,
+  MapPin,
+  Package,
+  Search,
+  ShoppingBag,
+  Store,
+  UserRound,
+  Utensils,
+} from 'lucide-react';
+import { supabase } from './lib/supabase';
+import './index.css';
 
-import type { Business, Category } from '@/types';
+type Tab = 'home' | 'discover' | 'orders' | 'profile';
+type Category = 'food' | 'shopping' | 'stores' | 'send';
 
-type CustomerScreen =
-  | { name: 'splash' }
-  | { name: 'welcome' }
-  | { name: 'app' }
-  | { name: 'marketplace' }
-  | { name: 'category'; category: Category }
-  | { name: 'enviar' }
-  | { name: 'parcel-success'; orderId: string }
-  | { name: 'parcel-tracking'; orderId: string }
-  | { name: 'business'; business: Business; from: { type: 'marketplace' } | { type: 'category'; category: Category } | { type: 'app' } }
-  | { name: 'cart' }
-  | { name: 'checkout' }
-  | { name: 'content'; topicKey: string }
-  | { name: 'register-business' }
-  | { name: 'register-estafeta' }
-  | { name: 'legal'; docKey: string };
+type Business = {
+  id: string;
+  name: string;
+  description: string | null;
+  marketplace_category: string | null;
+  status: string;
+};
 
-function openWhatsApp(text: string) {
-  window.open(`https://wa.me/244900000000?text=${encodeURIComponent(text)}`, '_blank');
-}
+type Product = {
+  id: string;
+  business_id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  price: number;
+  currency_code: string;
+};
 
-function CustomerApp() {
-  const auth = useAuth();
-  const [screen, setScreen] = useState<CustomerScreen>({ name: 'splash' });
+const money = (value: number) => `${new Intl.NumberFormat('pt-AO').format(value)} Kz`;
+
+const categoryConfig: Record<Category, { label: string; subtitle: string; icon: typeof Utensils }> = {
+  food: { label: 'Comida', subtitle: 'Restaurantes e comida local', icon: Utensils },
+  shopping: { label: 'Compras', subtitle: 'O que precisas no dia a dia', icon: ShoppingBag },
+  stores: { label: 'Lojas', subtitle: 'Supermercados e grandes lojas', icon: Store },
+  send: { label: 'Enviar', subtitle: 'Documentos e encomendas', icon: Package },
+};
+
+function App() {
   const [tab, setTab] = useState<Tab>('home');
-  const [showAddress, setShowAddress] = useState(false);
-  const [showAddressMode, setShowAddressMode] = useState<'picker' | 'manage'>('picker');
-  const [showPersonal, setShowPersonal] = useState(false);
-  const [showPayments, setShowPayments] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showAppearance, setShowAppearance] = useState(false);
-  const [showPermissions, setShowPermissions] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [showDelete, setShowDelete] = useState(false);
-  const [showSignIn, setShowSignIn] = useState(false);
-  const [authSheetMode, setAuthSheetMode] = useState<'sign-in' | 'sign-up'>('sign-in');
-  const [profileTick, setProfileTick] = useState(0);
-  const [, bumpAppearance] = useState(0);
-  const [dataStatus, setDataStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [dataError, setDataError] = useState<string | null>(null);
-  const defaultAddress = repositories.location.getDefaultAddress();
-  const appearanceMode = repositories.settings.getAppearance();
-  const resolvedDark = useResolvedDark(appearanceMode);
+  const [category, setCategory] = useState<Category | null>(null);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
-    let alive = true;
-    if (!isSupabaseConfigured() && !isDemoModeEnabled()) {
-      setDataError('O Pedejá não conseguiu ligar ao serviço de dados. Configura o Supabase antes de usar a aplicação em produção.');
-      setDataStatus('error');
-      return () => { alive = false; };
-    }
-    if (isSupabaseConfigured() && !auth.user) {
-      setDataStatus('ready');
-      return () => { alive = false; };
-    }
-    setDataStatus('loading');
-    setDataError(null);
-    let attempt = 0;
-    const initializeWithRetry = async () => {
-      while (attempt < 2 && alive) {
-        attempt += 1;
-        try {
-          await repositories.initialize();
-          if (alive) setDataStatus('ready');
-          return;
-        } catch (error: unknown) {
-          if (attempt >= 2 || !alive) {
-            if (!alive) return;
-            console.error('[Pedejá] Falha ao carregar dados', error);
-            setDataError(error instanceof Error ? error.message : 'Não foi possível carregar os dados.');
-            setDataStatus('error');
-            return;
-          }
-          await new Promise((resolve) => window.setTimeout(resolve, 450));
-        }
-      }
+    let active = true;
+    const load = async () => {
+      setLoading(true);
+      const [{ data: profile }, { data: businessesData }] = await Promise.all([
+        supabase.from('profiles').select('full_name').maybeSingle(),
+        supabase
+          .from('businesses')
+          .select('id,name,description,marketplace_category,status')
+          .eq('status', 'active')
+          .order('name')
+          .limit(24),
+      ]);
+      if (!active) return;
+      setUserName(profile?.full_name?.split(' ')[0] ?? '');
+      setBusinesses((businessesData as Business[] | null) ?? []);
+      setLoading(false);
     };
-    void initializeWithRetry();
-    return () => { alive = false; };
-  }, [auth.user]);
+    void load();
+    return () => { active = false; };
+  }, []);
 
-  useEffect(() => {
-    if (auth.status === 'authenticated') {
-      setScreen((current) => (
-        current.name === 'splash' || current.name === 'welcome'
-          ? { name: 'app' }
-          : current
-      ));
-    }
-  }, [auth.status]);
+  const filteredBusinesses = useMemo(() => {
+    if (!category || category === 'send') return businesses;
+    const wanted = category === 'food' ? ['food', 'restaurant', 'comida'] : category === 'shopping' ? ['shopping', 'compras'] : ['stores', 'lojas', 'retail'];
+    return businesses.filter((business) => wanted.includes((business.marketplace_category ?? '').toLowerCase()));
+  }, [businesses, category]);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    root.dataset.appearance = resolvedDark ? 'dark' : 'light';
-    return () => {
-      delete root.dataset.appearance;
-    };
-  }, [resolvedDark]);
+  const openCategory = (next: Category) => {
+    setCategory(next);
+    if (next === 'send') setTab('home');
+  };
 
-  if (dataStatus === 'loading') return <SessionGate />;
-  if (dataStatus === 'error') return <SessionGate error={dataError ?? 'Não foi possível carregar os dados.'} onRetry={() => window.location.reload()} />;
+  const nav = (next: Tab) => {
+    setCategory(null);
+    setTab(next);
+  };
 
-  function navigateToApp() {
-    setScreen({ name: 'app' });
-    setTab('home');
-  }
-
-  function handleGuest() {
-    if (!auth.isDemo && !auth.user) {
-      setAuthSheetMode('sign-in');
-      setShowSignIn(true);
-      return;
-    }
-    navigateToApp();
-  }
-
-  function handleCategory(cat: Category) {
-    if (cat === 'enviar') {
-      if (!auth.user && !auth.isDemo) {
-        setAuthSheetMode('sign-in');
-        setShowSignIn(true);
-        showToast('Entra para usar o Pedejá Enviar.');
-        return;
-      }
-      setScreen({ name: 'enviar' });
-    } else {
-      setScreen({ name: 'category', category: cat });
-    }
-  }
-
-  function handleBusiness(b: Business) {
-    setScreen({
-      name: 'business',
-      business: b,
-      from: screen.name === 'category'
-        ? { type: 'category', category: screen.category }
-        : { type: 'marketplace' },
-    });
-  }
-
-  function openCheckout() {
-    if (!auth.user) {
-      setAuthSheetMode('sign-in');
-      setShowSignIn(true);
-      showToast('Entra para finalizar a compra.');
-      return;
-    }
-    setScreen({ name: 'checkout' });
-  }
-
-  function confirmLogout() {
-    setShowLogoutConfirm(false);
-    void auth.signOut();
-    setScreen({ name: 'welcome' });
-    showToast('Sessão terminada.');
-  }
-
-  function handleAction(label: string, orderId?: string) {
-    switch (label) {
-      case 'logout':
-        setShowLogoutConfirm(true);
-        return;
-      case 'support':
-        openWhatsApp('Olá Pedejá! Preciso de ajuda.');
-        return;
-      case 'track':
-        showToast('Encontra o mapa com a localização por cima. O estafeta está a caminho.');
-        return;
-      case 'trackParcel':
-        if (orderId) {
-          setScreen({ name: 'parcel-tracking', orderId });
-        }
-        return;
-      case 'addresses':
-        setShowAddressMode('manage');
-        setShowAddress(true);
-        return;
-      case 'personal':
-        setShowPersonal(true);
-        return;
-      case 'payments':
-        setShowPayments(true);
-        return;
-      case 'notifications':
-        setShowNotifications(true);
-        return;
-      case 'appearance':
-        setShowAppearance(true);
-        return;
-      case 'permissions':
-        setShowPermissions(true);
-        return;
-      case 'privacy':
-        setScreen({ name: 'content', topicKey: 'Política de Privacidade' });
-        return;
-      case 'terms':
-        setScreen({ name: 'content', topicKey: 'Termos de Uso' });
-        return;
-      case 'delete-account':
-        setShowDelete(true);
-        return;
-      case 'share-and-earn':
-      case 'share-app':
-        if (navigator.share) {
-          navigator.share({ title: 'Pedejá', text: 'A promessa que se move — pede e recebe com o Pedejá.' }).catch(() => {});
-        } else {
-          showToast('O Pedejá está disponível no teu navegador.');
-        }
-        return;
-      default:
-        showToast('Estamos a preparar isso. Em breve!');
-        return;
-    }
-  }
-
-  if (screen.name === 'splash') {
+  if (category) {
     return (
-      <>
-        <SplashView onNext={() => setScreen({ name: 'welcome' })} />
-        <ToastHost />
-      </>
-    );
-  }
-
-  if (screen.name === 'welcome') {
-    return (
-      <>
-        <WelcomeView
-          onEnter={() => { setAuthSheetMode('sign-in'); setShowSignIn(true); }}
-          onCreate={() => { setAuthSheetMode('sign-up'); setShowSignIn(true); }}
-          onGuest={handleGuest}
-          demoMode={auth.isDemo}
-        />
-        <BottomSheet
-          open={showSignIn}
-          onClose={() => setShowSignIn(false)}
-          eyebrow="PEDEJÁ"
-          title="Como queres começar?"
-        >
-          <SignInSheet
-            key={authSheetMode}
-            initialMode={authSheetMode}
-            onClose={() => setShowSignIn(false)}
-            onSuccess={navigateToApp}
-          />
-        </BottomSheet>
-        <ToastHost />
-      </>
-    );
-  }
-
-  if (screen.name === 'marketplace') {
-    return (
-      <>
-        <MarketplaceView
-          onBack={() => setScreen({ name: 'app' })}
-          onBusiness={handleBusiness}
-          onCategory={handleCategory}
-          onCart={() => setScreen({ name: 'cart' })}
-          signedIn={Boolean(auth.user || auth.isDemo)}
-        />
-        <ToastHost />
-      </>
-    );
-  }
-
-  if (screen.name === 'category') {
-    return (
-      <>
+      <AppShell tab={tab} onNavigate={nav}>
         <CategoryView
-          category={screen.category}
-          onBack={() => setScreen({ name: 'app' })}
-          onBusiness={handleBusiness}
-        />
-        <ToastHost />
-      </>
-    );
-  }
-
-  if (screen.name === 'enviar') {
-    return (
-      <>
-        <EnviarView
-          onBack={() => setScreen({ name: 'app' })}
-          onComplete={(orderId) => setScreen({ name: 'parcel-success', orderId })}
-        />
-        <ToastHost />
-      </>
-    );
-  }
-
-  if (screen.name === 'parcel-success') {
-    return (
-      <>
-        <ParcelCreatedView
-          orderId={screen.orderId}
-          onTrack={() => setScreen({ name: 'parcel-tracking', orderId: screen.orderId })}
-          onDone={() => {
-            setScreen({ name: 'app' });
-            setTab('orders');
+          category={category}
+          businesses={filteredBusinesses}
+          products={products}
+          loading={loading}
+          onBack={() => setCategory(null)}
+          onLoadProducts={async (businessId) => {
+            const { data } = await supabase.from('products').select('id,business_id,name,description,image_url,price,currency_code').eq('business_id', businessId).eq('status', 'active').order('sort_order');
+            setProducts((data as Product[] | null) ?? []);
           }}
         />
-        <ToastHost />
-      </>
-    );
-  }
-
-  if (screen.name === 'parcel-tracking') {
-    return (
-      <>
-        <ParcelTrackingView
-          orderId={screen.orderId}
-          onBack={() => {
-            setScreen({ name: 'app' });
-            setTab('orders');
-          }}
-          onCancelled={(orderId) => {
-            setScreen({ name: 'parcel-tracking', orderId });
-          }}
-        />
-        <ToastHost />
-      </>
-    );
-  }
-
-  if (screen.name === 'business') {
-    return (
-      <>
-        <BusinessView
-          business={screen.business}
-          onBack={() => {
-            if (screen.from.type === 'marketplace') setScreen({ name: 'marketplace' });
-            else if (screen.from.type === 'category') setScreen({ name: 'category', category: screen.from.category });
-            else setScreen({ name: 'app' });
-          }}
-          onCart={() => setScreen({ name: 'cart' })}
-        />
-        <ToastHost />
-      </>
-    );
-  }
-
-  if (screen.name === 'cart') {
-    const cartBusiness = repositories.cart.getBusiness();
-    return (
-      <>
-        <CartView
-          business={cartBusiness}
-          onBack={() =>
-            cartBusiness
-              ? setScreen({ name: 'business', business: cartBusiness, from: { type: 'app' } })
-              : setScreen({ name: 'app' })
-          }
-          onCheckout={openCheckout}
-        />
-        <ToastHost />
-      </>
-    );
-  }
-
-  if (screen.name === 'checkout') {
-    const business = repositories.cart.getBusiness();
-    return (
-      <>
-        <CheckoutView
-          onBack={() =>
-            business
-              ? setScreen({ name: 'business', business, from: { type: 'app' } })
-              : setScreen({ name: 'app' })
-          }
-          address={defaultAddress}
-          onChangeAddress={() => {
-            setShowAddressMode('picker');
-            setShowAddress(true);
-          }}
-          onPlaced={(orderId) => {
-            showToast(`Pedido ${orderId} confirmado.`);
-            setScreen({ name: 'app' });
-            setTab('orders');
-          }}
-        />
-        <AddressSheet
-          open={showAddress}
-          onClose={() => setShowAddress(false)}
-          onChanged={() => setProfileTick((value) => value + 1)}
-          confirmLabel="Escolher"
-        />
-        <ToastHost />
-      </>
-    );
-  }
-
-  if (screen.name === 'content') {
-    return (
-      <>
-        <ContentView
-          topicKey={screen.topicKey}
-          onBack={() => setScreen({ name: 'app' })}
-          onSupport={() => openWhatsApp('Olá Pedejá! Quero falar com o suporte.')}
-        />
-        <ToastHost />
-      </>
-    );
-  }
-
-  if (screen.name === 'register-business') {
-    return (
-      <>
-        <BusinessRegisterView
-          onBack={() => setScreen({ name: 'app' })}
-          onSupport={() => openWhatsApp('Olá Pedejá! Quero registar o meu negócio.')}
-        />
-        <ToastHost />
-      </>
-    );
-  }
-
-  if (screen.name === 'register-estafeta') {
-    return (
-      <>
-        <EstafetaRegisterView
-          onBack={() => setScreen({ name: 'app' })}
-          onSupport={() => openWhatsApp('Olá Pedejá! Quero registar-me como Estafeta.')}
-        />
-        <ToastHost />
-      </>
-    );
-  }
-
-  if (screen.name === 'legal') {
-    return (
-      <>
-        <LegalDocView
-          docKey={screen.docKey}
-          onBack={() => setScreen({ name: 'app' })}
-          onSupport={() => openWhatsApp('Olá Pedejá! Tenho uma dúvida sobre documentos legais.')}
-        />
-        <ToastHost />
-      </>
+      </AppShell>
     );
   }
 
   return (
-    <div className="app-shell">
-      <div className="app-frame">
-        {tab === 'home' && (
-          <HomeView
-            onAddress={() => {
-              setShowAddressMode('picker');
-              setShowAddress(true);
-            }}
-            onCategory={handleCategory}
-            onMarketplace={() => setScreen({ name: 'marketplace' })}
-            defaultAddress={defaultAddress}
-          />
-        )}
-        {tab === 'explore' && (
-          <ExploreView
-            onRegisterBusiness={() => setScreen({ name: 'register-business' })}
-            onRegisterEstafeta={() => setScreen({ name: 'register-estafeta' })}
-            onOpenLegal={(docKey) => setScreen({ name: 'legal', docKey })}
-          />
-        )}
-        {tab === 'orders' && <OrdersView onAction={handleAction} />}
-        {tab === 'profile' && <ProfileView key={profileTick} onAction={handleAction} />}
-      </div>
-      <BottomNav tab={tab} onChange={setTab} badge={1} />
-      <AddressSheet
-        open={showAddress}
-        onClose={() => setShowAddress(false)}
-        onChanged={() => setProfileTick((value) => value + 1)}
-        closeOnSelect={showAddressMode === 'picker'}
-        confirmLabel={showAddressMode === 'picker' ? 'Confirmar localização' : 'Fechar'}
-      />
-      <PersonalDataSheet
-        open={showPersonal}
-        onClose={() => setShowPersonal(false)}
-        onChanged={() => setProfileTick((t) => t + 1)}
-        onSupport={() => openWhatsApp('Olá Pedejá! Quero atualizar os meus dados pessoais.')}
-      />
-      <PaymentsSheet open={showPayments} onClose={() => setShowPayments(false)} />
-      <NotificationsSheet open={showNotifications} onClose={() => setShowNotifications(false)} />
-      <AppearanceSheet open={showAppearance} onClose={() => setShowAppearance(false)} onChanged={() => bumpAppearance((t) => t + 1)} />
-      <PermissionsSheet open={showPermissions} onClose={() => setShowPermissions(false)} />
-      <DeleteAccountDialog open={showDelete} onClose={() => setShowDelete(false)} />
-      <ConfirmDialog
-        open={showLogoutConfirm}
-        title="Terminar sessão?"
-        message="Vais voltar ao início. Tens a certeza?"
-        confirmLabel="Terminar sessão"
-        tone="primary"
-        onConfirm={confirmLogout}
-        onCancel={() => setShowLogoutConfirm(false)}
-      />
-      <ToastHost />
+    <AppShell tab={tab} onNavigate={nav}>
+      {tab === 'home' && <HomeView name={userName} businesses={businesses} loading={loading} onCategory={openCategory} />}
+      {tab === 'discover' && <DiscoverView />}
+      {tab === 'orders' && <OrdersView />}
+      {tab === 'profile' && <ProfileView name={userName} />}
+    </AppShell>
+  );
+}
+
+function AppShell({ children, tab, onNavigate }: { children: React.ReactNode; tab: Tab; onNavigate: (tab: Tab) => void }) {
+  return (
+    <div className="app-frame">
+      <main className="app-content">{children}</main>
+      <nav className="bottom-nav" aria-label="Navegação principal">
+        <NavItem active={tab === 'home'} label="Início" icon={Home} onClick={() => onNavigate('home')} />
+        <NavItem active={tab === 'discover'} label="Descobrir" icon={Compass} onClick={() => onNavigate('discover')} />
+        <NavItem active={tab === 'orders'} label="Pedidos" icon={Clock3} onClick={() => onNavigate('orders')} />
+        <NavItem active={tab === 'profile'} label="Perfil" icon={UserRound} onClick={() => onNavigate('profile')} />
+      </nav>
     </div>
   );
 }
 
-function App() {
-  const auth = useAuth();
-  const path = window.location.pathname.replace(/\/$/, '') || '/';
-  // Backoffice aliases are intentionally supported so staff links/bookmarks remain forgiving.
-  if (path === '/merchant' || path === '/merchants' || path === '/rider' || path === '/estafeta' || path === '/operations' || path === '/operation') {
-    const surface = (path === '/merchant' || path === '/merchants') ? 'merchant' : (path === '/operations' || path === '/operation') ? 'operations' : 'rider';
-    return <ProductionBackoffice surface={surface} />;
-  }
-  
-  if (auth.status === 'loading') return <SessionGate />;
-  if (auth.status === 'error') {
-    return <SessionGate error={auth.error ?? 'Não foi possível verificar a sessão.'} onRetry={auth.retry} />;
-  }
-  
-  return <CustomerApp />;
+function NavItem({ active, label, icon: Icon, onClick }: { active: boolean; label: string; icon: typeof Home; onClick: () => void }) {
+  return <button className={`nav-item ${active ? 'active' : ''}`} onClick={onClick}><Icon size={21} strokeWidth={active ? 2.4 : 2} /><span>{label}</span></button>;
 }
+
+function HomeView({ name, businesses, loading, onCategory }: { name: string; businesses: Business[]; loading: boolean; onCategory: (category: Category) => void }) {
+  return (
+    <div className="screen home-screen">
+      <header className="topbar">
+        <div className="location-button"><MapPin size={17} /><div><span>Entregar em</span><strong>Casa</strong></div><ChevronRight size={16} /></div>
+        <button className="icon-button" aria-label="Notificações"><Bell size={20} /></button>
+      </header>
+
+      <section className="hero-copy">
+        <p className="eyebrow">{name ? `Olá, ${name}` : 'Olá 👋'}</p>
+        <h1>O que precisas<br /><em>hoje?</em></h1>
+        <div className="search-bar"><Search size={19} /><span>Procurar comida, lojas ou produtos</span></div>
+      </section>
+
+      <section className="category-grid">
+        <CategoryCard category="food" onClick={() => onCategory('food')} />
+        <CategoryCard category="shopping" onClick={() => onCategory('shopping')} />
+        <CategoryCard category="send" onClick={() => onCategory('send')} />
+        <CategoryCard category="stores" onClick={() => onCategory('stores')} />
+      </section>
+
+      <section className="quick-strip">
+        {['Perto de ti', 'Mais pedidos', 'Promo', 'Aberto', '<20 min'].map((label, index) => <button key={label} className={index === 0 ? 'selected' : ''}>{label}</button>)}
+      </section>
+
+      <section className="section-block">
+        <SectionHeading title="Perto de ti" action="Ver tudo" />
+        {loading ? <LoadingRows /> : businesses.length === 0 ? <EmptyState title="Estamos a preparar a rede" text="Os negócios disponíveis aparecerão aqui assim que estiverem activos." /> : <BusinessRail businesses={businesses.slice(0, 8)} />}
+      </section>
+
+      <section className="promise-banner">
+        <div><span>PEDEJÁ</span><strong>Uma promessa que se move.</strong><p>Comida, compras, lojas e entregas num só lugar.</p></div>
+        <ArrowRight size={20} />
+      </section>
+    </div>
+  );
+}
+
+function CategoryCard({ category, onClick }: { category: Category; onClick: () => void }) {
+  const config = categoryConfig[category];
+  const Icon = config.icon;
+  return <button className={`category-card ${category}`} onClick={onClick}><div className="category-icon"><Icon size={23} /></div><div><strong>{config.label}</strong><span>{config.subtitle}</span></div><ArrowRight size={17} /></button>;
+}
+
+function CategoryView({ category, businesses, products, loading, onBack, onLoadProducts }: { category: Category; businesses: Business[]; products: Product[]; loading: boolean; onBack: () => void; onLoadProducts: (id: string) => Promise<void> }) {
+  const config = categoryConfig[category];
+  if (category === 'send') return <SendView onBack={onBack} />;
+  return <div className="screen"><header className="inner-header"><button className="back-button" onClick={onBack}><ArrowLeft size={20} /></button><div><span>Explorar</span><h2>{config.label}</h2></div><button className="icon-button"><Search size={20} /></button></header><div className="category-intro"><p>{config.subtitle}</p><div className="search-bar compact"><Search size={18} /><span>Procurar {config.label.toLowerCase()}</span></div></div><section className="section-block category-results">{loading ? <LoadingRows /> : businesses.length === 0 ? <EmptyState title="Ainda não há negócios aqui" text="Estamos a expandir a rede Pedejá." /> : businesses.map((business) => <BusinessRow key={business.id} business={business} products={products} onOpen={() => void onLoadProducts(business.id)} />)}</section></div>;
+}
+
+function BusinessRow({ business, products, onOpen }: { business: Business; products: Product[]; onOpen: () => void }) {
+  const ownProducts = products.filter((product) => product.business_id === business.id);
+  return <button className="business-row" onClick={onOpen}><div className="business-avatar">{business.name.slice(0, 1).toUpperCase()}</div><div className="business-main"><strong>{business.name}</strong><span>{business.description || 'Negócio Pedejá'}</span><small>{ownProducts.length ? `${ownProducts.length} produtos` : 'Ver catálogo'} · Aberto</small></div><ChevronRight size={19} /></button>;
+}
+
+function BusinessRail({ businesses }: { businesses: Business[] }) {
+  return <div className="business-rail">{businesses.map((business) => <article className="business-tile" key={business.id}><div className="tile-image">{business.name.slice(0, 1)}</div><strong>{business.name}</strong><span>{business.marketplace_category || 'Pedejá'}</span><small>Aberto · 20–35 min</small></article>)}</div>;
+}
+
+function SendView({ onBack }: { onBack: () => void }) {
+  return <div className="screen send-screen"><header className="inner-header"><button className="back-button" onClick={onBack}><ArrowLeft size={20} /></button><div><span>Pedejá</span><h2>Enviar</h2></div></header><div className="send-hero"><div className="send-icon"><Package size={30} /></div><h1>Fazemos chegar.</h1><p>Envia documentos, pequenas encomendas e pacotes para onde precisam de ir.</p></div><div className="form-stack"><label>Recolher em<button className="field"><MapPin size={18} /><span>Escolher local de recolha</span><ChevronRight size={17} /></button></label><label>Entregar em<button className="field"><MapPin size={18} /><span>Escolher destino</span><ChevronRight size={17} /></button></label><label>O que vais enviar?<button className="field"><Package size={18} /><span>Documento ou encomenda</span><ChevronRight size={17} /></button></label></div><button className="primary-action">Continuar <ArrowRight size={18} /></button></div>;
+}
+
+function DiscoverView() {
+  return <div className="screen discover-screen"><div className="page-heading"><span>PEDEJÁ</span><h1>Descobrir</h1><p>Conhece a rede que faz as coisas moverem-se.</p></div><div className="link-groups"><LinkGroup title="Sobre nós" links={['O que é Pedejá', 'A promessa que se move']} /><LinkGroup title="Como funciona" links={['Como pedir', 'Como enviar', 'Acompanhar pedido']} /><LinkGroup title="Faz parte da rede" links={['Tornar-se Estafeta', 'Tornar-se Parceiro', 'Registar negócio']} /><LinkGroup title="Ajuda" links={['Perguntas frequentes', 'Contactar suporte']} /></div></div>;
+}
+
+function LinkGroup({ title, links }: { title: string; links: string[] }) { return <section className="link-group"><h3>{title}</h3>{links.map((link) => <button key={link}>{link}<ChevronRight size={17} /></button>)}</section>; }
+
+function OrdersView() {
+  return <div className="screen"><div className="page-heading"><span>OS TEUS PEDIDOS</span><h1>Acompanhar</h1><p>Todos os teus pedidos num só lugar.</p></div><div className="order-tabs"><button className="selected">Ativos</button><button>Histórico</button></div><EmptyState title="Ainda não tens pedidos" text="Quando fizeres o teu primeiro pedido, poderás acompanhá-lo aqui em tempo real." action="Começar a pedir" /></div>;
+}
+
+function ProfileView({ name }: { name: string }) {
+  return <div className="screen"><div className="profile-head"><div className="avatar">{name ? name.slice(0, 1).toUpperCase() : 'P'}</div><div><span>Conta Pedejá</span><h1>{name || 'A tua conta'}</h1></div></div><div className="profile-list"><ProfileItem icon={MapPin} title="Endereços" detail="Casa e outros locais" /><ProfileItem icon={ShoppingBag} title="Pagamentos" detail="Gerir métodos de pagamento" /><ProfileItem icon={Bell} title="Notificações" detail="Preferências e alertas" /><ProfileItem icon={UserRound} title="Ajuda e suporte" detail="Estamos aqui para ajudar" /></div><button className="logout">Terminar sessão</button><p className="version">Pedejá · A promessa que se move</p></div>;
+}
+
+function ProfileItem({ icon: Icon, title, detail }: { icon: typeof MapPin; title: string; detail: string }) { return <button className="profile-item"><div className="profile-item-icon"><Icon size={19} /></div><div><strong>{title}</strong><span>{detail}</span></div><ChevronRight size={18} /></button>; }
+
+function SectionHeading({ title, action }: { title: string; action: string }) { return <div className="section-heading"><h2>{title}</h2><button>{action}<ChevronRight size={15} /></button></div>; }
+function LoadingRows() { return <div className="loading-list"><div /><div /><div /></div>; }
+function EmptyState({ title, text, action }: { title: string; text: string; action?: string }) { return <div className="empty-state"><div className="empty-dot" /><h2>{title}</h2><p>{text}</p>{action && <button className="primary-action">{action}</button>}</div>; }
 
 export default App;
