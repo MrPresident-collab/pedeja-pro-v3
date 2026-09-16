@@ -4,6 +4,7 @@ import App from './App.tsx';
 import { AuthProvider } from './auth/AuthProvider';
 import './index.css';
 import './rebuild.css';
+import './flow.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
