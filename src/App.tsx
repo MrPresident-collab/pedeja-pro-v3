@@ -28,11 +28,9 @@ export default function App() {
   const [address, setAddress] = useState('Definir endereço');
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setScreen('welcome'), 1200);
     void supabase.auth.getSession().then(({ data }) => {
       if (data.session) { setScreen('app'); void loadCustomer(data.session.user.id); }
     });
-    return () => window.clearTimeout(timer);
   }, []);
 
   async function loadCustomer(userId: string) {
@@ -73,7 +71,7 @@ export default function App() {
 
   function addProduct(id: string) { setCart(c => ({ ...c, [id]: (c[id] ?? 0) + 1 })); }
 
-  if (screen === 'splash') return <Splash />;
+  if (screen === 'splash') return <Splash onNext={() => setScreen('welcome')} />;
   if (screen === 'welcome') return <Welcome onEnter={() => setScreen('auth')} onGuest={() => setScreen('address')} />;
   if (screen === 'auth') return <Auth phone={phone} setPhone={setPhone} otp={otp} setOtp={setOtp} step={authStep} busy={busy} notice={notice} onSend={sendCode} onVerify={verifyCode} onBack={() => setAuthStep('phone')} />;
   if (screen === 'address') return <Address address={address} setAddress={setAddress} onContinue={() => setScreen('app')} />;
@@ -96,7 +94,7 @@ export default function App() {
   );
 }
 
-function Splash() { return <main className="splash"><div><div className="splash-brand">Pedejá<span className="brand-purple-dot">.</span></div><p>A promessa que se move</p></div></main>; }
+function Splash({ onNext }: { onNext: () => void }) { return <main className="splash"><div className="splash-center"><div><div className="splash-brand">Pedejá<span className="brand-purple-dot">.</span></div><p>A promessa que se move</p></div></div><button className="splash-next" onClick={onNext}>Próximo <ChevronRight size={19} /></button></main>; }
 function Welcome({ onEnter, onGuest }: { onEnter: () => void; onGuest: () => void }) { return <main className="welcome"><div className="brand-lockup"><strong>Pedejá<span className="brand-purple-dot">.</span></strong><small>A promessa que se move</small></div><div className="welcome-copy"><span>ENTRE NO ECOSSISTEMA</span><h1>Tudo o que precisas,<br />a caminho de ti.</h1><p>Comida, compras, lojas e envios — numa só experiência.</p></div><div className="welcome-actions"><button className="primary" onClick={onEnter}>Entrar</button><button className="secondary" onClick={onEnter}>Criar conta</button><button className="text-button" onClick={onGuest}>Continuar como convidado</button></div></main>; }
 function Auth({ phone, setPhone, otp, setOtp, step, busy, notice, onSend, onVerify, onBack }: { phone:string; setPhone:(v:string)=>void; otp:string; setOtp:(v:string)=>void; step:'phone'|'otp'; busy:boolean; notice:string; onSend:()=>void; onVerify:()=>void; onBack:()=>void }) { return <main className="auth-page"><button className="icon-button" onClick={onBack}><ArrowLeft /></button><div className="auth-copy"><span>PEDEJÁ</span><h1>{step === 'phone' ? 'Entra na tua conta.' : 'Confirma o teu número.'}</h1><p>{step === 'phone' ? 'Usa o teu número de Angola para continuar.' : `Código enviado para ${phone}`}</p></div>{step === 'phone' ? <input autoFocus value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+244 9xx xxx xxx" inputMode="tel" /> : <input autoFocus value={otp} onChange={e=>setOtp(e.target.value)} placeholder="Código de 6 dígitos" inputMode="numeric" maxLength={6} />}{notice && <div className="notice">{notice}</div>}<button className="primary" disabled={busy} onClick={step === 'phone' ? onSend : onVerify}>{busy ? 'A processar…' : step === 'phone' ? 'Enviar código' : 'Confirmar'}</button></main>; }
 function Address({ address, setAddress, onContinue }: { address:string; setAddress:(v:string)=>void; onContinue:()=>void }) { return <main className="address-page"><div className="address-icon"><MapPin /></div><span>ONDE ENTREGAMOS?</span><h1>Primeiro, diz-nos onde estás.</h1><p>A tua casa será o endereço principal. Podes adicionar outros depois.</p><label>Casa<input value={address === 'Definir endereço' ? '' : address} onChange={e=>setAddress(e.target.value)} placeholder="Ex.: Talatona, Luanda" /></label><button className="primary" onClick={onContinue}>Continuar</button><button className="text-button" onClick={onContinue}>Definir mais tarde</button></main>; }
