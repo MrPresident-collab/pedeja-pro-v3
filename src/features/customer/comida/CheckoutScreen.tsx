@@ -1,6 +1,6 @@
-import { ArrowLeft, Check, CreditCard, MapPin, ShoppingBag, Banknote } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Banknote, Check, CreditCard, MapPin, ShoppingBag } from 'lucide-react';
 import { formatKz } from '../../../app/app-types';
-import type { Product } from '../../../app/app-types';
 import type { CartItem } from './RestaurantDetail';
 import './comida.css';
 
@@ -16,9 +16,9 @@ type Props = {
 type PaymentMethod = 'cash' | 'card';
 
 export default function CheckoutScreen({ items, businessName, address, onBack, onAddressChange, onComplete }: Props) {
-  const [payment, setPayment] = React.useState<PaymentMethod>('cash');
-  const [note, setNote] = React.useState('');
-  const [busy, setBusy] = React.useState(false);
+  const [payment, setPayment] = useState<PaymentMethod>('cash');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const count = items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -75,5 +75,3 @@ export default function CheckoutScreen({ items, businessName, address, onBack, o
     </main>
   );
 }
-
-import React from 'react';
