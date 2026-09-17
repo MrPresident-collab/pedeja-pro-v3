@@ -1,0 +1,127 @@
+import { useEffect, useState } from 'react';
+import { ArrowRight, Home, Compass, Package, UserRound } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import type { AppScreen, CustomerTab } from './app-types';
+
+const SPLASH_MS = 1400;
+
+export default function App() {
+  const [screen, setScreen] = useState<AppScreen>('splash');
+  const [tab, setTab] = useState<CustomerTab>('inicio');
+  const [phone, setPhone] = useState('+244 ');
+  const [otp, setOtp] = useState('');
+  const [authStep, setAuthStep] = useState<'phone' | 'otp'>('phone');
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [address, setAddress] = useState('');
+  const [returningSession, setReturningSession] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setReturningSession(Boolean(data.session));
+      window.setTimeout(() => {
+        if (active) setScreen(data.session ? 'customer' : 'welcome');
+      }, SPLASH_MS);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function sendCode() {
+    setBusy(true);
+    setNotice('');
+    const { error } = await supabase.auth.signInWithOtp({ phone: phone.replace(/\s+/g, '') });
+    setBusy(false);
+    if (error) {
+      setNotice(error.message);
+      return;
+    }
+    setAuthStep('otp');
+    setNotice('Enviámos um código para o teu número.');
+  }
+
+  async function verifyCode() {
+    setBusy(true);
+    setNotice('');
+    const { data, error } = await supabase.auth.verifyOtp({
+      phone: phone.replace(/\s+/g, ''),
+      token: otp.trim(),
+      type: 'sms',
+    });
+    setBusy(false);
+    if (error || !data.user) {
+      setNotice(error?.message ?? 'Código inválido.');
+      return;
+    }
+    setScreen('address');
+  }
+
+  if (screen === 'splash') return <Splash returningSession={returningSession} />;
+  if (screen === 'welcome') {
+    return <Welcome onEnter={() => setScreen('auth')} onGuest={() => setScreen('address')} />;
+  }
+  if (screen === 'auth') {
+    return (
+      <Auth
+        phone={phone}
+        otp={otp}
+        step={authStep}
+        busy={busy}
+        notice={notice}
+        onPhoneChange={setPhone}
+        onOtpChange={setOtp}
+        onSend={sendCode}
+        onVerify={verifyCode}
+        onBack={() => setAuthStep('phone')}
+      />
+    );
+  }
+  if (screen === 'address') {
+    return <Address address={address} onChange={setAddress} onContinue={() => setScreen('customer')} />;
+  }
+
+  return <Customer tab={tab} onTabChange={setTab} address={address || 'Definir endereço'} />;
+}
+
+function Splash({ returningSession }: { returningSession: boolean }) {
+  return (
+    <main className="splash" aria-label="Pedejá">
+      <div className="splash-center">
+        <div>
+          <div className="splash-brand">Pedejá<span className="brand-purple-dot">.</span></div>
+          <p>A promessa que se move</p>
+          {returningSession && <small> A preparar a tua sessão…</small>}
+        </div>
+      </div>
+      <div className="splash-next" aria-hidden="true">A carregar…</div>
+    </main>
+  );
+}
+
+function Welcome({ onEnter, onGuest }: { onEnter: () => void; onGuest: () => void }) {
+  return (
+    <main className="welcome">
+      <div className="brand-lockup"><strong>Pedejá<span className="brand-purple-dot">.</span></strong><small>A promessa que se move</small></div>
+      <div className="welcome-copy"><span>ENTRA NO ECOSSISTEMA</span><h1>Tudo o que precisas,<br />a caminho de ti.</h1><p>Comida, compras, lojas e envios — numa só experiência.</p></div>
+      <div className="welcome-actions"><button className="primary" onClick={onEnter}>Entrar</button><button className="secondary" onClick={onEnter}>Criar conta</button><button className="text-button" onClick={onGuest}>Continuar como convidado</button></div>
+    </main>
+  );
+}
+
+function Auth({ phone, otp, step, busy, notice, onPhoneChange, onOtpChange, onSend, onVerify, onBack }: { phone: string; otp: string; step: 'phone' | 'otp'; busy: boolean; notice: string; onPhoneChange: (value: string) => void; onOtpChange: (value: string) => void; onSend: () => void; onVerify: () => void; onBack: () => void }) {
+  return (
+    <main className="auth-page"><button className="icon-button" onClick={onBack} aria-label="Voltar">←</button><div className="auth-copy"><span>PEDEJÁ</span><h1>{step === 'phone' ? 'Entra na tua conta.' : 'Confirma o teu número.'}</h1><p>{step === 'phone' ? 'Usa o teu número de Angola para continuar.' : `Código enviado para ${phone}`}</p></div>{step === 'phone' ? <input autoFocus value={phone} onChange={(event) => onPhoneChange(event.target.value)} placeholder="+244 9xx xxx xxx" inputMode="tel" /> : <input autoFocus value={otp} onChange={(event) => onOtpChange(event.target.value)} placeholder="Código de 6 dígitos" inputMode="numeric" maxLength={6} />}{notice && <div className="notice">{notice}</div>}<button className="primary" disabled={busy} onClick={step === 'phone' ? onSend : onVerify}>{busy ? 'A processar…' : step === 'phone' ? 'Enviar código' : 'Confirmar'}</button></main>
+  );
+}
+
+function Address({ address, onChange, onContinue }: { address: string; onChange: (value: string) => void; onContinue: () => void }) {
+  return <main className="address-page"><div className="address-icon">⌖</div><span>ONDE ENTREGAMOS?</span><h1>Primeiro, diz-nos onde estás.</h1><p>A tua casa será o endereço principal. Podes adicionar outros depois.</p><label>Casa<input value={address} onChange={(event) => onChange(event.target.value)} placeholder="Ex.: Talatona, Luanda" /></label><button className="primary" onClick={onContinue}>Continuar</button><button className="text-button" onClick={onContinue}>Definir mais tarde</button></main>;
+}
+
+function Customer({ tab, onTabChange, address }: { tab: CustomerTab; onTabChange: (tab: CustomerTab) => void; address: string }) {
+  const labels: Record<CustomerTab, string> = { inicio: 'Início', descobrir: 'Descobrir', pedidos: 'Pedidos', perfil: 'Perfil' };
+  return <div className="app-shell"><main className="screen simple-screen"><span className="eyebrow">{labels[tab].toUpperCase()}</span><h1>{tab === 'inicio' ? 'O que precisas hoje?' : labels[tab]}</h1><p>{tab === 'inicio' ? `Entregar em ${address}` : 'Esta área será construída na próxima etapa do rebuild.'}</p></main><nav className="bottom-nav" aria-label="Navegação principal">{([['inicio', Home], ['descobrir', Compass], ['pedidos', Package], ['perfil', UserRound] ] as const).map(([id, Icon]) => <button key={id} className={tab === id ? 'active' : ''} onClick={() => onTabChange(id)} aria-current={tab === id ? 'page' : undefined}><Icon size={21} /><span>{labels[id]}</span></button>)}</nav></div>;
+}
