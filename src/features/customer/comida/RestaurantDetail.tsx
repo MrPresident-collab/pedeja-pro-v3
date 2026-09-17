@@ -7,9 +7,17 @@ import './comida.css';
 
 export type CartItem = Product & { quantity: number };
 
-export default function RestaurantDetail({ business, onBack }: { business: Business; onBack: () => void }) {
+type Props = {
+  business: Business;
+  cart: CartItem[];
+  onBack: () => void;
+  onAdd: (product: Product) => void;
+  onChangeQuantity: (productId: string, delta: number) => void;
+  onOpenCart: () => void;
+};
+
+export default function RestaurantDetail({ business, cart, onBack, onAdd, onChangeQuantity, onOpenCart }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,20 +28,6 @@ export default function RestaurantDetail({ business, onBack }: { business: Busin
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [business.id]);
-
-  const add = (product: Product) => {
-    setCart(current => {
-      const existing = current.find(item => item.id === product.id);
-      if (existing) return current.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
-      return [...current, { ...product, quantity: 1 }];
-    });
-  };
-
-  const changeQuantity = (productId: string, delta: number) => {
-    setCart(current => current
-      .map(item => item.id === productId ? { ...item, quantity: item.quantity + delta } : item)
-      .filter(item => item.quantity > 0));
-  };
 
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -67,9 +61,9 @@ export default function RestaurantDetail({ business, onBack }: { business: Busin
                 <article className="product-row" key={product.id}>
                   <div className="product-copy"><strong>{product.name}</strong>{product.description && <p>{product.description}</p>}<span>{formatKz(product.price)}</span></div>
                   {quantity === 0 ? (
-                    <button className="add-product" onClick={() => add(product)} aria-label={`Adicionar ${product.name}`}><Plus size={18} /></button>
+                    <button className="add-product" onClick={() => onAdd(product)} aria-label={`Adicionar ${product.name}`}><Plus size={18} /></button>
                   ) : (
-                    <div className="quantity-control"><button onClick={() => changeQuantity(product.id, -1)} aria-label="Diminuir"><Minus size={15} /></button><strong>{quantity}</strong><button onClick={() => changeQuantity(product.id, 1)} aria-label="Aumentar"><Plus size={15} /></button></div>
+                    <div className="quantity-control"><button onClick={() => onChangeQuantity(product.id, -1)} aria-label="Diminuir"><Minus size={15} /></button><strong>{quantity}</strong><button onClick={() => onChangeQuantity(product.id, 1)} aria-label="Aumentar"><Plus size={15} /></button></div>
                   )}
                 </article>
               );
@@ -79,7 +73,7 @@ export default function RestaurantDetail({ business, onBack }: { business: Busin
       </section>
 
       {itemCount > 0 && (
-        <button className="sticky-cart">
+        <button className="sticky-cart" onClick={onOpenCart}>
           <span><ShoppingBag size={18} /> {itemCount} {itemCount === 1 ? 'item' : 'itens'}</span>
           <strong>Ver pedido · {formatKz(total)}</strong>
         </button>
