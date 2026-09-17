@@ -22,19 +22,7 @@ export default function App() {
   const [address, setAddress] = useState('');
   const [returningSession, setReturningSession] = useState(false);
   const [trackingShipmentId, setTrackingShipmentId] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setReturningSession(Boolean(data.session));
-      const sharedTrackingId = new URLSearchParams(window.location.search).get('tracking');
-      if (sharedTrackingId) setTrackingShipmentId(sharedTrackingId);
-      window.setTimeout(() => { if (active) setScreen(data.session ? 'customer' : 'welcome'); }, SPLASH_MS);
-    });
-    return () => { active = false; };
-  }, []);
-
+  useEffect(() => { let active = true; void supabase.auth.getSession().then(({ data }) => { if (!active) return; setReturningSession(Boolean(data.session)); const sharedTrackingId = new URLSearchParams(window.location.search).get('tracking'); if (sharedTrackingId) setTrackingShipmentId(sharedTrackingId); window.setTimeout(() => { if (active) setScreen(data.session ? 'customer' : 'welcome'); }, SPLASH_MS); }); return () => { active = false; }; }, []);
   if (screen === 'splash') return <Splash returningSession={returningSession} />;
   if (screen === 'welcome') return <Welcome onEnter={() => setScreen('auth')} onGuest={() => setScreen('address')} />;
   if (screen === 'auth') return <Auth onBack={() => setScreen('welcome')} onSuccess={() => setScreen('address')} />;
@@ -56,7 +44,7 @@ function Customer({ tab, onTabChange, address, trackingShipmentId, onOpenTrackin
   if (view === 'comida') return <div className="app-shell"><ComidaScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
   if (view === 'compras') return <div className="app-shell"><ComprasScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
   if (view === 'lojas') return <div className="app-shell"><LojasScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
-  if (view === 'enviar') return <div className="app-shell"><EnviarScreen onBack={goHome} /></div>;
+  if (view === 'enviar') return <div className="app-shell"><EnviarScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
   return <div className="app-shell">{tab === 'inicio' ? <HomeScreen address={address} onSection={selectSection} /> : <SimpleScreen tab={tab} />}<BottomNav tab={tab} onChange={onTabChange} /></div>;
 }
 
