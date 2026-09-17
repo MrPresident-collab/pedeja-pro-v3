@@ -1,5 +1,7 @@
-
 [db.migrations]
 schema_paths = [
   "schemas",
 ]
+
+[functions.enviar-secret-notifications]
+verify_jwt = false
