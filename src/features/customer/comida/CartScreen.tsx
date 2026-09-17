@@ -4,7 +4,7 @@ import type { Product } from '../../../app/app-types';
 import type { CartItem } from './RestaurantDetail';
 import './comida.css';
 
-export default function CartScreen({ items, onBack, onChangeQuantity }: { items: CartItem[]; onBack: () => void; onChangeQuantity: (product: Product, delta: number) => void }) {
+export default function CartScreen({ items, businessName, onBack, onChangeQuantity, onCheckout }: { items: CartItem[]; businessName: string; onBack: () => void; onChangeQuantity: (product: Product, delta: number) => void; onCheckout: () => void }) {
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const count = items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -20,6 +20,7 @@ export default function CartScreen({ items, onBack, onChangeQuantity }: { items:
         <div className="marketplace-empty"><div className="empty-icon"><ShoppingBag size={24} /></div><strong>O carrinho está vazio</strong><p>Adiciona produtos de um parceiro para continuar.</p></div>
       ) : (
         <>
+          <section className="cart-merchant"><span>PARCEIRO</span><strong>{businessName}</strong></section>
           <section className="cart-list">
             {items.map(item => (
               <article className="cart-row" key={item.id}>
@@ -28,8 +29,8 @@ export default function CartScreen({ items, onBack, onChangeQuantity }: { items:
               </article>
             ))}
           </section>
-          <section className="cart-summary"><div><span>Subtotal</span><strong>{formatKz(total)}</strong></div><small>{count} {count === 1 ? 'item' : 'itens'} · O total final será calculado no checkout.</small></section>
-          <button className="primary cart-continue" disabled>Continuar para checkout</button>
+          <section className="cart-summary"><div><span>Subtotal</span><strong>{formatKz(total)}</strong></div><small>{count} {count === 1 ? 'item' : 'itens'} · A entrega será calculada no checkout.</small></section>
+          <button className="primary cart-continue" onClick={onCheckout}>Continuar para checkout</button>
         </>
       )}
     </main>
