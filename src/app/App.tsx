@@ -4,13 +4,15 @@ import { supabase } from '../lib/supabase';
 import { listActiveBusinesses } from '../repositories/businessRepository';
 import ComidaScreen from '../features/customer/comida/ComidaScreen';
 import ComprasScreen from '../features/customer/compras/ComprasScreen';
+import LojasScreen from '../features/customer/lojas/LojasScreen';
 import type { AppScreen, Business, CustomerSection, CustomerTab } from './app-types';
 import './home.css';
 import '../features/customer/compras/compras.css';
+import '../features/customer/lojas/lojas.css';
 
 const SPLASH_MS = 1400;
 
-type CustomerView = 'home' | 'comida' | 'compras';
+type CustomerView = 'home' | 'comida' | 'compras' | 'lojas';
 
 export default function App() {
   const [screen, setScreen] = useState<AppScreen>('splash');
@@ -66,15 +68,12 @@ function Customer({ tab, onTabChange, address }: { tab: CustomerTab; onTabChange
   const selectSection = (section: CustomerSection) => {
     if (section === 'comida') setView('comida');
     if (section === 'compras') setView('compras');
+    if (section === 'lojas') setView('lojas');
   };
 
-  if (view === 'comida') {
-    return <div className="app-shell"><ComidaScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
-  }
-
-  if (view === 'compras') {
-    return <div className="app-shell"><ComprasScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
-  }
+  if (view === 'comida') return <div className="app-shell"><ComidaScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
+  if (view === 'compras') return <div className="app-shell"><ComprasScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
+  if (view === 'lojas') return <div className="app-shell"><LojasScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
 
   return <div className="app-shell">{tab === 'inicio' ? <HomeScreen address={address} onSection={selectSection} /> : <SimpleScreen tab={tab} />}<BottomNav tab={tab} onChange={onTabChange} /></div>;
 }
