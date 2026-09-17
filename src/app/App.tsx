@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight, Compass, Home, MapPin, Package, Search, ShoppingBag, Store, UserRound, UtensilsCrossed } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { listActiveBusinesses } from '../repositories/businessRepository';
+import ComidaScreen from '../features/customer/comida/ComidaScreen';
 import type { AppScreen, Business, CustomerSection, CustomerTab } from './app-types';
 import './home.css';
 
 const SPLASH_MS = 1400;
+
+type CustomerView = 'home' | 'comida';
 
 export default function App() {
   const [screen, setScreen] = useState<AppScreen>('splash');
@@ -56,10 +59,18 @@ function Address({ address, onChange, onContinue }: { address: string; onChange:
 }
 
 function Customer({ tab, onTabChange, address }: { tab: CustomerTab; onTabChange: (tab: CustomerTab) => void; address: string }) {
-  return <div className="app-shell">{tab === 'inicio' ? <HomeScreen address={address} /> : <SimpleScreen tab={tab} />}<BottomNav tab={tab} onChange={onTabChange} /></div>;
+  const [view, setView] = useState<CustomerView>('home');
+  const goHome = () => setView('home');
+  const selectSection = (section: CustomerSection) => { if (section === 'comida') setView('comida'); };
+
+  if (view === 'comida') {
+    return <div className="app-shell"><ComidaScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
+  }
+
+  return <div className="app-shell">{tab === 'inicio' ? <HomeScreen address={address} onSection={selectSection} /> : <SimpleScreen tab={tab} />}<BottomNav tab={tab} onChange={onTabChange} /></div>;
 }
 
-function HomeScreen({ address }: { address: string }) {
+function HomeScreen({ address, onSection }: { address: string; onSection: (section: CustomerSection) => void }) {
   const [section, setSection] = useState<CustomerSection>('home');
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +81,7 @@ function HomeScreen({ address }: { address: string }) {
     { id: 'enviar', label: 'Enviar', image: '/enviar.png', Icon: Package },
     { id: 'lojas', label: 'Lojas', image: '/lojas.png', Icon: Store },
   ];
-  return <main className="screen home-screen"><header className="topbar"><div className="home-avatar" aria-label="Perfil"><UserRound size={19} /></div><button className="home-address"><MapPin size={15} />{address}<ChevronDown size={16} /></button></header><section className="home-heading"><p>Olá, Daniel 👋</p><h1>O que precisas hoje?</h1></section><div className="search"><Search size={19} /><span>Pesquisar comida, lojas ou produtos</span></div><section className="experience-grid" aria-label="Experiências Pedejá">{experiences.map(({ id, label, image, Icon }) => <button className="experience-card" key={id} onClick={() => setSection(id)}><img src={image} alt="" onError={event => { event.currentTarget.style.display = 'none'; }} /><span className="experience-fallback"><Icon size={28} /></span><strong>{label}</strong></button>)}</section><div className="filter-row" aria-label="Filtros"><button className="filter active">Perto de ti</button><button className="filter">Mais pedidos</button><button className="filter">Promo</button><button className="filter">Aberto</button><button className="filter">&lt;20 min</button></div><div className="section-row"><h2>{section === 'home' ? 'Perto de ti' : experiences.find(item => item.id === section)?.label}</h2><button>Ver tudo</button></div><section className="business-list">{loading ? <div className="home-loading">A carregar opções perto de ti…</div> : businesses.length === 0 ? <div className="home-empty">Ainda estamos a preparar parceiros perto de ti.</div> : businesses.slice(0, 8).map(business => <button className="business-row" key={business.id}><div className="business-image"><Store size={22} /></div><div><strong>{business.name}</strong><p>{business.description || 'Comida, compras e entrega Pedejá'}</p><small><MapPin size={12} /> Perto de ti · 20–35 min</small></div><ChevronRight size={18} /></button>)}</section></main>;
+  return <main className="screen home-screen"><header className="topbar"><div className="home-avatar" aria-label="Perfil"><UserRound size={19} /></div><button className="home-address"><MapPin size={15} />{address}<ChevronDown size={16} /></button></header><section className="home-heading"><p>Olá, Daniel 👋</p><h1>O que precisas hoje?</h1></section><div className="search"><Search size={19} /><span>Pesquisar comida, lojas ou produtos</span></div><section className="experience-grid" aria-label="Experiências Pedejá">{experiences.map(({ id, label, image, Icon }) => <button className="experience-card" key={id} onClick={() => { setSection(id); onSection(id); }}><img src={image} alt="" onError={event => { event.currentTarget.style.display = 'none'; }} /><span className="experience-fallback"><Icon size={28} /></span><strong>{label}</strong></button>)}</section><div className="filter-row" aria-label="Filtros"><button className="filter active">Perto de ti</button><button className="filter">Mais pedidos</button><button className="filter">Promo</button><button className="filter">Aberto</button><button className="filter">&lt;20 min</button></div><div className="section-row"><h2>{section === 'home' ? 'Perto de ti' : experiences.find(item => item.id === section)?.label}</h2><button>Ver tudo</button></div><section className="business-list">{loading ? <div className="home-loading">A carregar opções perto de ti…</div> : businesses.length === 0 ? <div className="home-empty">Ainda estamos a preparar parceiros perto de ti.</div> : businesses.slice(0, 8).map(business => <button className="business-row" key={business.id}><div className="business-image"><Store size={22} /></div><div><strong>{business.name}</strong><p>{business.description || 'Comida, compras e entrega Pedejá'}</p><small><MapPin size={12} /> Perto de ti · 20–35 min</small></div><ChevronRight size={18} /></button>)}</section></main>;
 }
 
 function SimpleScreen({ tab }: { tab: CustomerTab }) { const labels: Record<CustomerTab, string> = { inicio: 'Início', descobrir: 'Descobrir', pedidos: 'Pedidos', perfil: 'Perfil' }; return <main className="screen simple-screen"><span className="eyebrow">{labels[tab].toUpperCase()}</span><h1>{labels[tab]}</h1><p>Esta área será construída nas próximas etapas do rebuild.</p></main>; }
