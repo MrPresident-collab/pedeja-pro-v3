@@ -3,12 +3,14 @@ import { ChevronDown, ChevronRight, Compass, Home, MapPin, Package, Search, Shop
 import { supabase } from '../lib/supabase';
 import { listActiveBusinesses } from '../repositories/businessRepository';
 import ComidaScreen from '../features/customer/comida/ComidaScreen';
+import ComprasScreen from '../features/customer/compras/ComprasScreen';
 import type { AppScreen, Business, CustomerSection, CustomerTab } from './app-types';
 import './home.css';
+import '../features/customer/compras/compras.css';
 
 const SPLASH_MS = 1400;
 
-type CustomerView = 'home' | 'comida';
+type CustomerView = 'home' | 'comida' | 'compras';
 
 export default function App() {
   const [screen, setScreen] = useState<AppScreen>('splash');
@@ -61,10 +63,17 @@ function Address({ address, onChange, onContinue }: { address: string; onChange:
 function Customer({ tab, onTabChange, address }: { tab: CustomerTab; onTabChange: (tab: CustomerTab) => void; address: string }) {
   const [view, setView] = useState<CustomerView>('home');
   const goHome = () => setView('home');
-  const selectSection = (section: CustomerSection) => { if (section === 'comida') setView('comida'); };
+  const selectSection = (section: CustomerSection) => {
+    if (section === 'comida') setView('comida');
+    if (section === 'compras') setView('compras');
+  };
 
   if (view === 'comida') {
     return <div className="app-shell"><ComidaScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
+  }
+
+  if (view === 'compras') {
+    return <div className="app-shell"><ComprasScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
   }
 
   return <div className="app-shell">{tab === 'inicio' ? <HomeScreen address={address} onSection={selectSection} /> : <SimpleScreen tab={tab} />}<BottomNav tab={tab} onChange={onTabChange} /></div>;
