@@ -1,0 +1,41 @@
+.lojas-screen { padding-bottom: 110px; }
+
+.lojas-screen .marketplace-header { display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; align-items: center; gap: 10px; }
+.lojas-screen .marketplace-header h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.lojas-intro { display: flex; gap: 12px; align-items: flex-start; margin: 14px 0 20px; padding: 14px; border: 1px solid rgba(138,43,226,.14); border-radius: 16px; background: rgba(138,43,226,.06); color: #8A2BE2; }
+.lojas-intro strong { display: block; color: #121212; font-size: 14px; }
+.lojas-intro p { margin: 4px 0 0; color: #66636d; font-size: 12px; line-height: 1.45; }
+
+.store-list { display: grid; gap: 10px; }
+.store-card { width: 100%; display: grid; grid-template-columns: 58px minmax(0, 1fr) 18px; gap: 12px; align-items: center; padding: 10px; border: 1px solid #e9e6ed; border-radius: 16px; background: #fff; text-align: left; color: #121212; }
+.store-card:active { transform: scale(.99); }
+.store-thumb { width: 58px; height: 58px; border-radius: 14px; display: grid; place-items: center; background: #f1e8fb; color: #8A2BE2; }
+.store-card-copy { min-width: 0; }
+.store-card-copy strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.store-card-copy p { margin: 3px 0 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #68656e; font-size: 12px; }
+.store-card-copy small { display: inline-flex; align-items: center; gap: 4px; color: #77737e; font-size: 11px; }
+
+.lojas-screen .product-list { display: grid; gap: 8px; }
+.lojas-screen .product-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 14px 0; border-bottom: 1px solid #ece9ef; }
+.lojas-screen .product-row strong { font-size: 15px; }
+.lojas-screen .product-row p { margin: 4px 0; color: #6f6b74; font-size: 12px; line-height: 1.4; }
+.lojas-screen .product-row span { display: block; margin-top: 5px; color: #8A2BE2; font-size: 13px; font-weight: 700; }
+.lojas-screen .add-button { width: 38px; height: 38px; border: 0; border-radius: 12px; background: #8A2BE2; color: #fff; font-size: 22px; }
+
+.lojas-screen .quantity { display: inline-flex; align-items: center; gap: 8px; }
+.lojas-screen .quantity button { width: 30px; height: 30px; border: 0; border-radius: 9px; background: #f0edf3; color: #121212; font-size: 18px; }
+.lojas-screen .quantity span { min-width: 18px; text-align: center; font-weight: 700; }
+.lojas-screen .sticky-cart { position: fixed; left: 16px; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 20; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border: 0; border-radius: 15px; background: #1A1A1A; color: #fff; box-shadow: 0 10px 28px rgba(0,0,0,.18); }
+.lojas-screen .sticky-cart span { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; }
+.lojas-screen .sticky-cart strong { color: #fff; }
+
+.lojas-cart { padding-bottom: 30px; }
+.lojas-screen .cart-items { display: grid; gap: 10px; margin-top: 20px; }
+.lojas-screen .cart-item { display: flex; justify-content: space-between; gap: 14px; align-items: center; padding: 14px; border: 1px solid #e9e6ed; border-radius: 14px; background: #fff; }
+.lojas-screen .cart-item strong, .lojas-screen .cart-item small { display: block; }
+.lojas-screen .cart-item small { margin-top: 4px; color: #77737e; font-size: 11px; }
+.lojas-screen .cart-summary { position: sticky; bottom: 0; margin-top: 18px; padding: 16px 0 calc(12px + env(safe-area-inset-bottom)); background: #f8f7fa; }
+.lojas-screen .cart-summary > div { display: flex; justify-content: space-between; align-items: center; }
+.lojas-screen .cart-summary p { margin: 7px 0 12px; color: #77737e; font-size: 11px; }
+.lojas-screen .cart-summary .primary { width: 100%; }
