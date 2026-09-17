@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
+  Banknote,
   Camera,
   Check,
   ChevronRight,
   Contact,
+  CreditCard,
   FileText,
   KeyRound,
   Map,
@@ -24,6 +26,7 @@ type RecipientMode = 'self' | 'other';
 type PackageType = 'document' | 'keys' | 'shopping' | 'food' | 'other';
 type PackageSize = 'small' | 'medium' | 'large';
 type VehicleType = 'moto' | 'kupapata' | 'car';
+type PaymentMethod = 'cash' | 'card';
 
 type FormState = {
   senderAddress: string;
@@ -41,10 +44,11 @@ type FormState = {
   vehicleType: VehicleType | '';
   prohibitedConfirmed: boolean;
   packagePhoto: File | null;
+  paymentMethod: PaymentMethod;
 };
 
 const initialForm: FormState = {
-  senderAddress: '', destinationAddress: '', recipientMode: 'self', recipientName: '', recipientPhone: '+244 ', alternatePhone: '+244 ', note: '', packageType: '', packageDescription: '', packageSize: '', packageWeight: '', fragile: false, vehicleType: '', prohibitedConfirmed: false, packagePhoto: null,
+  senderAddress: '', destinationAddress: '', recipientMode: 'self', recipientName: '', recipientPhone: '+244 ', alternatePhone: '+244 ', note: '', packageType: '', packageDescription: '', packageSize: '', packageWeight: '', fragile: false, vehicleType: '', prohibitedConfirmed: false, packagePhoto: null, paymentMethod: 'cash',
 };
 
 const recentAddresses = [{ label: 'Casa', value: 'Casa' }, { label: 'Trabalho', value: 'Talatona' }];
@@ -129,7 +133,7 @@ export default function EnviarScreen({ onBack }: { onBack: () => void }) {
 
         {step === 'photo' && <div className="enviar-form photo-step"><div className="photo-example"><div className="photo-placeholder"><Package size={42} /></div><strong>Foto da caixa fechada</strong><span>Mostra a encomenda já embalada e fechada.</span></div><label className="photo-button"><Camera size={19} /><span>{form.packagePhoto ? 'Tirar novamente' : 'Tirar foto'}</span><input type="file" accept="image/*" capture="environment" onChange={e => handlePhoto(e.target.files?.[0] ?? null)} /></label>{photoPreview && <div className="photo-preview"><img src={photoPreview} alt="Pré-visualização da encomenda" /><button type="button" onClick={() => { update('packagePhoto', null); if (photoPreview) URL.revokeObjectURL(photoPreview); setPhotoPreview(null); }} aria-label="Remover foto"><X size={17} /></button></div>}</div>}
 
-        {step === 'review' && <div className="enviar-review"><div className="review-card"><div className="review-row"><span>Recolha</span><strong>{form.senderAddress}</strong></div><div className="review-row"><span>Destino</span><strong>{form.destinationAddress}</strong></div></div><div className="review-card"><div className="review-row"><span>Recebe</span><strong>{form.recipientMode === 'self' ? 'Eu mesmo' : form.recipientName}</strong></div>{form.recipientMode === 'other' && <div className="review-row"><span>Telefone</span><strong>{form.recipientPhone}</strong></div>}<div className="review-row"><span>Tipo</span><strong>{packageTypes.find(type => type.value === form.packageType)?.label}</strong></div><div className="review-row"><span>Tamanho</span><strong>{sizeOptions.find(size => size.value === form.packageSize)?.label}</strong></div><div className="review-row"><span>Peso</span><strong>{formatWeight(form.packageWeight)}</strong></div><div className="review-row"><span>Viatura</span><strong>{vehicleOptions.find(vehicle => vehicle.value === form.vehicleType)?.label}</strong></div>{form.fragile && <div className="review-badge">Frágil — será tratado conforme a configuração operacional.</div>}</div><div className="secret-code-note"><ShieldAlert size={19} /><div><strong>Código secreto de 5 dígitos</strong><p>Quando um estafeta aceitar o envio, a Pedejá enviará o código secreto ao remetente. O remetente partilha-o com quem vai receber a encomenda. Quando o estafeta chegar ao destino, o destinatário fornece o código ao estafeta. Sem código válido, a entrega não pode ser concluída.</p></div></div></div>}
+        {step === 'review' && <div className="enviar-review"><div className="review-card"><div className="review-row"><span>Recolha</span><strong>{form.senderAddress}</strong></div><div className="review-row"><span>Destino</span><strong>{form.destinationAddress}</strong></div></div><div className="review-card"><div className="review-row"><span>Recebe</span><strong>{form.recipientMode === 'self' ? 'Eu mesmo' : form.recipientName}</strong></div>{form.recipientMode === 'other' && <div className="review-row"><span>Telefone</span><strong>{form.recipientPhone}</strong></div>}<div className="review-row"><span>Tipo</span><strong>{packageTypes.find(type => type.value === form.packageType)?.label}</strong></div><div className="review-row"><span>Tamanho</span><strong>{sizeOptions.find(size => size.value === form.packageSize)?.label}</strong></div><div className="review-row"><span>Peso</span><strong>{formatWeight(form.packageWeight)}</strong></div><div className="review-row"><span>Viatura</span><strong>{vehicleOptions.find(vehicle => vehicle.value === form.vehicleType)?.label}</strong></div>{form.fragile && <div className="review-badge">Frágil — será tratado conforme a configuração operacional.</div>}</div><div className="review-card payment-card"><div className="review-section-title">Forma de pagamento</div><div className="choice-grid two"><button type="button" className={`choice-card ${form.paymentMethod === 'cash' ? 'selected' : ''}`} onClick={() => update('paymentMethod', 'cash')}><Banknote size={21} /><strong>Cash</strong></button><button type="button" className={`choice-card ${form.paymentMethod === 'card' ? 'selected' : ''}`} onClick={() => update('paymentMethod', 'card')}><CreditCard size={21} /><strong>Card</strong></button></div><p className="muted-note">O valor final será calculado no checkout pela configuração operacional vigente.</p></div><div className="secret-code-note"><ShieldAlert size={19} /><div><strong>Código secreto de 5 dígitos</strong><p>Quando um estafeta aceitar o envio, a Pedejá enviará o código secreto ao remetente. O remetente partilha-o com quem vai receber a encomenda. Quando o estafeta chegar ao destino, o destinatário fornece o código ao estafeta. Sem código válido, a entrega não pode ser concluída.</p></div></div></div>}
       </section>
 
       <div className="enviar-bottom"><button className="primary enviar-continue" disabled={!canContinue} onClick={next}>{step === 'review' ? 'Continuar para checkout' : 'Continuar'}<ChevronRight size={19} /></button>{step === 'review' && <button className="cancel-action" type="button" onClick={onBack}>Cancelar</button>}</div>
