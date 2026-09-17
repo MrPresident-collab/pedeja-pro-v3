@@ -73,7 +73,7 @@ function Customer({ tab, onTabChange, address }: { tab: CustomerTab; onTabChange
     if (section === 'enviar') setView('enviar');
   };
 
-  if (view === 'comida') return <div className="app-shell"><ComidaScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
+  if (view === 'comida') return <div className="app-shell"><ComidaScreen onBack={goHome} address={address} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
   if (view === 'compras') return <div className="app-shell"><ComprasScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
   if (view === 'lojas') return <div className="app-shell"><LojasScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
   if (view === 'enviar') return <div className="app-shell"><EnviarScreen onBack={goHome} /><BottomNav tab={tab} onChange={onTabChange} /></div>;
