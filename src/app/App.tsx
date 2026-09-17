@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Compass, Home, MapPin, Package, Search, Shop
 import { supabase } from '../lib/supabase';
 import { listActiveBusinesses } from '../repositories/businessRepository';
 import type { AppScreen, Business, CustomerSection, CustomerTab } from './app-types';
+import './home.css';
 
 const SPLASH_MS = 1400;
 
@@ -55,7 +56,7 @@ function Address({ address, onChange, onContinue }: { address: string; onChange:
 }
 
 function Customer({ tab, onTabChange, address }: { tab: CustomerTab; onTabChange: (tab: CustomerTab) => void; address: string }) {
-  return <div className="app-shell">{tab === 'inicio' ? <HomeScreen address={address} /> : <SimpleScreen tab={tab} />}{tab === 'inicio' && <BottomNav tab={tab} onChange={onTabChange} />}{tab !== 'inicio' && <BottomNav tab={tab} onChange={onTabChange} />}</div>;
+  return <div className="app-shell">{tab === 'inicio' ? <HomeScreen address={address} /> : <SimpleScreen tab={tab} />}<BottomNav tab={tab} onChange={onTabChange} /></div>;
 }
 
 function HomeScreen({ address }: { address: string }) {
