@@ -14,9 +14,10 @@ type Props = {
   onAdd: (product: Product) => void;
   onChangeQuantity: (productId: string, delta: number) => void;
   onOpenCart: () => void;
+  notice?: string;
 };
 
-export default function RestaurantDetail({ business, cart, onBack, onAdd, onChangeQuantity, onOpenCart }: Props) {
+export default function RestaurantDetail({ business, cart, onBack, onAdd, onChangeQuantity, onOpenCart, notice }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,6 +48,8 @@ export default function RestaurantDetail({ business, cart, onBack, onAdd, onChan
         {business.description && <p>{business.description}</p>}
       </section>
 
+      {notice && <div className="cart-notice" role="status">{notice}</div>}
+
       <section className="product-section">
         <div className="marketplace-section-heading"><div><span className="eyebrow">MENU</span><h2>Escolhe o que queres</h2></div></div>
         {loading ? (
@@ -72,12 +75,7 @@ export default function RestaurantDetail({ business, cart, onBack, onAdd, onChan
         )}
       </section>
 
-      {itemCount > 0 && (
-        <button className="sticky-cart" onClick={onOpenCart}>
-          <span><ShoppingBag size={18} /> {itemCount} {itemCount === 1 ? 'item' : 'itens'}</span>
-          <strong>Ver pedido · {formatKz(total)}</strong>
-        </button>
-      )}
+      {itemCount > 0 && <button className="sticky-cart" onClick={onOpenCart}><span><ShoppingBag size={18} /> {itemCount} {itemCount === 1 ? 'item' : 'itens'}</span><strong>Ver pedido · {formatKz(total)}</strong></button>}
     </main>
   );
 }
