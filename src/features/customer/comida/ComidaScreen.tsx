@@ -35,7 +35,7 @@ const matchesCategory = (business: Business, category: FoodCategory) => {
   return terms[category].some(term => haystack.includes(term));
 };
 
-export default function ComidaScreen({ onBack, address = 'Casa' }: { onBack: () => void; address?: string }) {
+export default function ComidaScreen({ onBack, address = '', addressId = null, onOrderCreated }: { onBack: () => void; address?: string; addressId?: string | null; onOrderCreated?: (orderId: string) => void }) {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -45,7 +45,6 @@ export default function ComidaScreen({ onBack, address = 'Casa' }: { onBack: () 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartBusiness, setCartBusiness] = useState<Business | null>(null);
   const [cartNotice, setCartNotice] = useState('');
-  const [checkoutAddress, setCheckoutAddress] = useState(address);
 
   useEffect(() => {
     let active = true;
@@ -55,8 +54,6 @@ export default function ComidaScreen({ onBack, address = 'Casa' }: { onBack: () 
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
-
-  useEffect(() => setCheckoutAddress(address), [address]);
 
   const filteredBusinesses = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -95,8 +92,23 @@ export default function ComidaScreen({ onBack, address = 'Casa' }: { onBack: () 
     setView('restaurant');
   };
 
+  const handleOrderCreated = (orderId: string) => {
+    setCart([]);
+    setCartBusiness(null);
+    setView('list');
+    onOrderCreated?.(orderId);
+  };
+
   if (view === 'checkout' && cartBusiness) {
-    return <CheckoutScreen items={cart} businessName={cartBusiness.name} address={checkoutAddress} onBack={() => setView('cart')} onAddressChange={setCheckoutAddress} onComplete={() => setView('cart')} />;
+    return <CheckoutScreen
+      items={cart}
+      businessId={cartBusiness.id}
+      businessName={cartBusiness.name}
+      address={address}
+      addressId={addressId}
+      onBack={() => setView('cart')}
+      onComplete={handleOrderCreated}
+    />;
   }
 
   if (view === 'cart') return <CartScreen items={cart} businessName={cartBusiness?.name ?? 'Pedejá'} onBack={() => setView(selectedBusiness ? 'restaurant' : 'list')} onChangeQuantity={changeQuantityByProduct(changeQuantity)} onCheckout={() => setView('checkout')} />;
@@ -112,7 +124,7 @@ export default function ComidaScreen({ onBack, address = 'Casa' }: { onBack: () 
         <div><span className="eyebrow">PEDEJÁ</span><h1>Comida</h1></div>
         <button className="icon-button" aria-label="Filtros"><SlidersHorizontal size={19} /></button>
       </header>
-      <div className="marketplace-location"><MapPin size={15} /><span>Entregar em {address}</span><ChevronRight size={15} /></div>
+      <div className="marketplace-location"><MapPin size={15} /><span>{address ? `Entregar em ${address}` : 'Adiciona uma morada de entrega'}</span><ChevronRight size={15} /></div>
       <label className="marketplace-search"><Search size={19} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Pesquisar comida ou restaurante" /></label>
       <div className="food-category-row" aria-label="Categorias de comida">{categories.map(item => <button key={item.id} className={category === item.id ? 'active' : ''} onClick={() => setCategory(item.id)}>{item.label}</button>)}</div>
       <div className="marketplace-section-heading"><div><span className="eyebrow">PERTO DE TI</span><h2>Restaurantes</h2></div><span className="result-count">{loading ? '…' : filteredBusinesses.length}</span></div>
